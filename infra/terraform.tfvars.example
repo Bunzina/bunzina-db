@@ -1,0 +1,25 @@
+aws_region = "us-east-1"
+project_name = "bunzina"
+environment = "dev"
+
+vpc_id = "vpc-12345678"
+subnet_ids = [
+  "subnet-11111111",
+  "subnet-22222222",
+]
+
+allowed_cidr_blocks = [
+  "10.0.0.0/16",
+]
+allowed_security_group_ids = [
+  "sg-12345678",
+]
+
+instance_class = "db.t3.micro"
+storage_size = 20
+backup_retention_period = 0
+deletion_protection = false
+
+# Optional overrides for the app.
+db_username = "bun"
+db_name     = "bunzina"
