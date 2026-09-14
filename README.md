@@ -33,8 +33,8 @@ infra/
 cp infra/terraform.tfvars.example infra/terraform.tfvars
 ```
 
-2. Fill in the environment and sizing values. Network IDs are read from the
-	`bunzina-infra` remote state instead of being copied manually.
+2. Fill in the environment and sizing values. The EKS cluster name is read
+   from the `bunzina-infra` remote state.
 
 3. Initialize Terraform:
 
@@ -69,11 +69,18 @@ terraform validate
 terraform plan
 ```
 
+6. Apply the database resources:
+
+```bash
+export TF_VAR_db_password="the-value-used-by-the-application"
+terraform apply
+```
+
 ## Notes
 
 - PostgreSQL 15 runs as a single-replica Deployment with a `gp3` EBS-backed PVC.
 - The `gp3` StorageClass is created by this module after `bunzina-infra` creates the EKS cluster.
 - The `postgres` ClusterIP Service is available only inside the cluster.
 - The PostgreSQL password is supplied as `TF_VAR_db_password` and stored in the
-  Kubernetes Secret managed by Terraform.
+	Kubernetes Secret managed by Terraform. Do not commit it to `terraform.tfvars`.
 - Backups, failover, upgrades and recovery remain operational responsibilities of the EKS deployment.
