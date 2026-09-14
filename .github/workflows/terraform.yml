@@ -47,7 +47,8 @@ jobs:
       - name: Bootstrap state bucket
         working-directory: .
         run: |
-          STATE_BUCKET="bunzina-tfstate-${{ secrets.AWS_ACCOUNT_ID }}"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          STATE_BUCKET="bunzina-tfstate-${ACCOUNT_ID}"
           aws s3api create-bucket --bucket "$STATE_BUCKET" --region "$AWS_REGION" 2>/dev/null || true
           aws s3api put-bucket-versioning --bucket "$STATE_BUCKET" \
             --versioning-configuration Status=Enabled || true
@@ -123,7 +124,8 @@ jobs:
       - name: Bootstrap state bucket
         working-directory: .
         run: |
-          STATE_BUCKET="bunzina-tfstate-${{ secrets.AWS_ACCOUNT_ID }}"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          STATE_BUCKET="bunzina-tfstate-${ACCOUNT_ID}"
           aws s3api create-bucket --bucket "$STATE_BUCKET" --region "$AWS_REGION" 2>/dev/null || true
           aws s3api put-bucket-versioning --bucket "$STATE_BUCKET" \
             --versioning-configuration Status=Enabled || true
