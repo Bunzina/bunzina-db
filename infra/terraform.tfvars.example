@@ -1,0 +1,14 @@
+aws_region = "us-east-1"
+project_name = "bunzina"
+environment = "dev"
+
+infra_state_bucket = "bunzina-terraform-state-SEU_ID"
+infra_state_key    = "bunzina/infra/dev/terraform.tfstate"
+
+storage_size = 10
+
+# Optional overrides for the app.
+db_username = "bun"
+db_name     = "bunzina"
+
+# Set this outside the file: export TF_VAR_db_password="..."
