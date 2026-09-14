@@ -5,6 +5,7 @@ This repository contains the Terraform configuration for the PostgreSQL workload
 ## Structure
 
 ```text
+README.md
 infra/
 ├── backend.tf
 ├── versions.tf
@@ -14,7 +15,6 @@ infra/
 ├── postgres.tf
 ├── outputs.tf
 ├── terraform.tfvars.example
-└── README.md
 ```
 
 ## Requirements
