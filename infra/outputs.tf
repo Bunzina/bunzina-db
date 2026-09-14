@@ -1,14 +1,20 @@
-output "db_endpoint" {
-  description = "DNS endpoint of the PostgreSQL instance."
-  value       = aws_db_instance.this.address
+output "postgres_service_name" {
+  description = "Kubernetes Service name used by the application to reach PostgreSQL."
+  value       = kubernetes_service_v1.postgres.metadata[0].name
 }
 
-output "db_port" {
-  description = "Port used by PostgreSQL."
-  value       = aws_db_instance.this.port
+output "postgres_namespace" {
+  description = "Kubernetes namespace containing PostgreSQL."
+  value       = kubernetes_namespace_v1.this.metadata[0].name
 }
 
-output "db_secret_arn" {
-  description = "ARN of the secret containing the PostgreSQL credentials."
-  value       = aws_secretsmanager_secret.db_credentials.arn
+output "postgres_secret_name" {
+  description = "Kubernetes Secret containing the PostgreSQL credentials."
+  value       = "postgres"
+}
+
+
+output "postgres_port" {
+  description = "Port used by the PostgreSQL Kubernetes Service."
+  value       = 5432
 }

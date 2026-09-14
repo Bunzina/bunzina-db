@@ -1,6 +1,6 @@
 # bunzina-db
 
-This repository contains the Terraform configuration for the PostgreSQL RDS instance used by Bunzina.
+This repository contains the Terraform configuration for the PostgreSQL workload used by Bunzina inside EKS.
 
 ## Structure
 
@@ -10,11 +10,8 @@ infra/
 ├── versions.tf
 ├── variables.tf
 ├── locals.tf
-├── db-subnet-group.tf
-├── security-group.tf
-├── parameter-group.tf
-├── secrets.tf
-├── rds.tf
+├── remote-state.tf
+├── postgres.tf
 ├── outputs.tf
 ├── terraform.tfvars.example
 └── README.md
@@ -24,7 +21,8 @@ infra/
 
 - Terraform >= 1.6.0
 - AWS provider ~> 5.0
-- An existing VPC, private subnets and application security group or CIDR range
+- Kubernetes provider ~> 2.38
+- An existing `bunzina-infra` state in S3 with the EKS cluster output
 - An S3 backend configured externally via `backend.tf`
 
 ## Quick start
@@ -35,7 +33,8 @@ infra/
 cp infra/terraform.tfvars.example infra/terraform.tfvars
 ```
 
-2. Fill in the values for your environment, especially `vpc_id`, `subnet_ids`, and `allowed_*` rules.
+2. Fill in the environment and sizing values. Network IDs are read from the
+	`bunzina-infra` remote state instead of being copied manually.
 
 3. Initialize Terraform:
 
@@ -43,6 +42,20 @@ cp infra/terraform.tfvars.example infra/terraform.tfvars
 cd infra
 terraform init
 ```
+
+The database module reads the EKS cluster name from the `bunzina-infra` remote
+state. Provide the shared state bucket without committing it to `terraform.tfvars`:
+
+```bash
+export TF_VAR_infra_state_bucket="your-state-bucket"
+```
+
+The infrastructure state must use the key configured by `infra_state_key`,
+which defaults to `bunzina/infra/dev/terraform.tfstate`.
+
+The S3 backend configured with `terraform init` stores the state of this
+repository. It may use the same physical bucket, but must use a different key,
+such as `bunzina/db/dev/terraform.tfstate`.
 
 4. Validate the configuration:
 
@@ -58,6 +71,9 @@ terraform plan
 
 ## Notes
 
-- The RDS instance is private-only and runs PostgreSQL 15.
-- Credentials are stored in AWS Secrets Manager and only the non-sensitive metadata is exposed as outputs.
-- The deployment intentionally keeps the setup minimal to match the ADR assumptions for a learning sandbox.
+- PostgreSQL 15 runs as a single-replica Deployment with a `gp3` EBS-backed PVC.
+- The `gp3` StorageClass is created by this module after `bunzina-infra` creates the EKS cluster.
+- The `postgres` ClusterIP Service is available only inside the cluster.
+- The PostgreSQL password is supplied as `TF_VAR_db_password` and stored in the
+  Kubernetes Secret managed by Terraform.
+- Backups, failover, upgrades and recovery remain operational responsibilities of the EKS deployment.

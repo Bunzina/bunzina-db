@@ -1,5 +1,5 @@
 variable "aws_region" {
-  description = "AWS region where the RDS instance will be created."
+  description = "AWS region where the EKS cluster is running."
   type        = string
   default     = "us-east-1"
 }
@@ -21,32 +21,46 @@ variable "environment" {
   }
 }
 
-variable "vpc_id" {
-  description = "VPC ID where the RDS instance will be provisioned."
+variable "infra_state_bucket" {
+  description = "S3 bucket containing the Terraform state for bunzina-infra."
   type        = string
 }
 
-variable "subnet_ids" {
-  description = "Private subnet IDs used by the DB subnet group."
-  type        = list(string)
+variable "infra_state_key" {
+  description = "S3 key for the bunzina-infra Terraform state."
+  type        = string
+  default     = "bunzina/infra/dev/terraform.tfstate"
 }
 
-variable "allowed_cidr_blocks" {
-  description = "CIDR ranges allowed to reach PostgreSQL on TCP/5432."
-  type        = list(string)
-  default     = []
+variable "kubernetes_namespace" {
+  description = "Kubernetes namespace where PostgreSQL is provisioned."
+  type        = string
+  default     = "bunzina"
 }
 
-variable "allowed_security_group_ids" {
-  description = "Security groups allowed to reach PostgreSQL on TCP/5432."
-  type        = list(string)
-  default     = []
+variable "storage_class_name" {
+  description = "Kubernetes StorageClass used by the PostgreSQL PVC."
+  type        = string
+  default     = "gp3"
+}
+
+variable "postgres_image" {
+  description = "PostgreSQL container image."
+  type        = string
+  default     = "postgres:15"
 }
 
 variable "db_username" {
-  description = "Master database user for PostgreSQL."
+  description = "PostgreSQL user stored in the Kubernetes Secret."
   type        = string
   default     = "bun"
+}
+
+variable "db_password" {
+  description = "PostgreSQL password supplied through TF_VAR_db_password."
+  type        = string
+  sensitive   = true
+  nullable    = false
 }
 
 variable "db_name" {
@@ -55,36 +69,13 @@ variable "db_name" {
   default     = "bunzina"
 }
 
-variable "instance_class" {
-  description = "RDS instance class to provision."
-  type        = string
-  default     = "db.t3.micro"
-}
-
 variable "storage_size" {
-  description = "Initial allocated storage in GiB."
+  description = "Persistent volume size for PostgreSQL in GiB."
   type        = number
-  default     = 20
+  default     = 10
 
   validation {
-    condition     = var.storage_size >= 20
-    error_message = "The allocated storage must be at least 20 GiB to match the initial sizing from the ADR."
+    condition     = var.storage_size >= 1
+    error_message = "The PostgreSQL persistent volume must be at least 1 GiB."
   }
-}
-
-variable "backup_retention_period" {
-  description = "Number of days to keep automated backups. Defaults to 0 to keep costs minimal for sandbox use."
-  type        = number
-  default     = 0
-
-  validation {
-    condition     = var.backup_retention_period >= 0 && var.backup_retention_period <= 35
-    error_message = "The backup retention period must be between 0 and 35 days."
-  }
-}
-
-variable "deletion_protection" {
-  description = "Whether the RDS instance should be protected from deletion."
-  type        = bool
-  default     = false
 }
