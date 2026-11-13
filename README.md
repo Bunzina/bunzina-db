@@ -2,7 +2,7 @@
 
 ## Propósito
 
-Provisionar o PostgreSQL utilizado pelo Bunzina dentro de um cluster Amazon EKS existente. O Terraform gerencia o namespace, as credenciais, o armazenamento persistente, o Deployment e o serviço interno de acesso ao banco.
+Provisionar PostgreSQL no cluster Amazon EKS existente. O Terraform gerencia o banco legado `bunzina` e instâncias PostgreSQL dedicadas a `bunzina-os` e `bunzina-billing`, incluindo credenciais, armazenamento persistente, Deployments e Services internos. O `bunzina-workshop` usa MongoDB Atlas e não é provisionado por este repositório.
 
 Este projeto depende do [bunzina-infra](https://github.com/Bunzina/bunzina-infra), que cria o cluster e instala o driver CSI do EBS. A ordem de implantação é **bunzina-infra → bunzina-db → [aplicação Bunzina](https://github.com/Bunzina/bunzina)**.
 
@@ -39,7 +39,7 @@ flowchart TD
     CSI --> EBS[Volume EBS gp3: 10 GiB por padrão]
 ```
 
-A StorageClass é criada no escopo do cluster e marcada como padrão. O volume é provisionado pelo driver EBS CSI quando houver um consumidor. O serviço `postgres` é acessível dentro do cluster; a aplicação pode usar `postgres.bunzina.svc.cluster.local:5432` com o namespace padrão.
+A StorageClass é criada no escopo do cluster e marcada como padrão. Os serviços `bunzina-os-postgres` e `bunzina-billing-postgres` são acessíveis dentro do namespace `bunzina` na porta 5432. Cada instância tem PVC e Secret próprios. Configure `DB_USER` e `DB_PASSWORD` dos workflows de deploy de OS e Billing com os mesmos valores de `db_username` e `db_password` do Terraform.
 
 ## Pré-requisitos
 
@@ -153,4 +153,4 @@ O job de aplicação utiliza o ambiente GitHub `production` e executa `terraform
 
 O PostgreSQL utiliza uma única réplica. Backups, restauração, atualizações e alta disponibilidade precisam de procedimentos próprios. Alterar a senha no Secret não altera automaticamente a senha de um banco já inicializado no volume persistente.
 
-Para remover o banco, execute `terraform destroy` em `infra/`, com backend e variáveis configurados. A exclusão do PVC pode remover o volume EBS e seus dados; faça o backup necessário antes. Remova os recursos deste repositório antes de destruir o cluster em `bunzina-infra`.
+Para remover os bancos, execute `terraform destroy` em `infra/`, com backend e variáveis configurados. A exclusão dos PVCs pode remover os volumes EBS e seus dados; faça o backup necessário antes. Remova os recursos deste repositório antes de destruir o cluster em `bunzina-infra`.

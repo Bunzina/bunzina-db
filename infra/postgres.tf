@@ -127,3 +127,134 @@ resource "kubernetes_service_v1" "postgres" {
     type = "ClusterIP"
   }
 }
+
+# Dedicated PostgreSQL instances for the services that consume them. The
+# workshop service uses MongoDB Atlas and is intentionally not included here.
+resource "kubernetes_secret_v1" "application_postgres" {
+  for_each = local.application_databases
+
+  metadata {
+    name      = "${each.value.service}-credentials"
+    namespace = kubernetes_namespace_v1.this.metadata[0].name
+  }
+
+  type = "Opaque"
+
+  data = {
+    POSTGRES_USER     = var.db_username
+    POSTGRES_PASSWORD = var.db_password
+    POSTGRES_DB       = each.value.name
+  }
+}
+
+resource "kubernetes_persistent_volume_claim_v1" "application_postgres" {
+  for_each = local.application_databases
+
+  metadata {
+    name      = "${each.value.service}-data"
+    namespace = kubernetes_namespace_v1.this.metadata[0].name
+  }
+
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = var.storage_class_name
+
+    resources {
+      requests = {
+        storage = "${var.storage_size}Gi"
+      }
+    }
+  }
+
+  depends_on = [kubernetes_storage_class_v1.gp3]
+}
+
+resource "kubernetes_deployment_v1" "application_postgres" {
+  for_each = local.application_databases
+
+  metadata {
+    name      = each.value.service
+    namespace = kubernetes_namespace_v1.this.metadata[0].name
+    labels = {
+      app = each.value.service
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = each.value.service
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = each.value.service
+        }
+      }
+
+      spec {
+        container {
+          name              = "postgres"
+          image             = var.postgres_image
+          image_pull_policy = "IfNotPresent"
+
+          port {
+            name           = "postgres"
+            container_port = 5432
+          }
+
+          env_from {
+            secret_ref {
+              name = kubernetes_secret_v1.application_postgres[each.key].metadata[0].name
+            }
+          }
+
+          env {
+            name  = "PGDATA"
+            value = "/var/lib/postgresql/data/pgdata"
+          }
+
+          volume_mount {
+            name       = "postgres-data"
+            mount_path = "/var/lib/postgresql/data"
+          }
+        }
+
+        volume {
+          name = "postgres-data"
+
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim_v1.application_postgres[each.key].metadata[0].name
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "application_postgres" {
+  for_each = local.application_databases
+
+  metadata {
+    name      = each.value.service
+    namespace = kubernetes_namespace_v1.this.metadata[0].name
+  }
+
+  spec {
+    selector = {
+      app = each.value.service
+    }
+
+    port {
+      name        = "postgres"
+      port        = 5432
+      target_port = 5432
+    }
+
+    type = "ClusterIP"
+  }
+}
