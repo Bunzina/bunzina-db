@@ -150,6 +150,8 @@ resource "kubernetes_secret_v1" "application_postgres" {
 resource "kubernetes_persistent_volume_claim_v1" "application_postgres" {
   for_each = local.application_databases
 
+  wait_until_bound = false
+
   metadata {
     name      = "${each.value.service}-data"
     namespace = kubernetes_namespace_v1.this.metadata[0].name
